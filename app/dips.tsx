@@ -61,7 +61,7 @@ export default function DipsScreen() {
 
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.homeBtn} onPress={() => router.push('/')}>
+        <TouchableOpacity style={styles.homeBtn} onPress={() => router.push('/dashboard' as any)}>
           <Text style={styles.homeText}>🏠</Text>
         </TouchableOpacity>
 
