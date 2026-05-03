@@ -1,53 +1,54 @@
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { supabase } from '../lib/supabase';
-import { COLORS, THEME } from '../constants/theme';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Image,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { COLORS } from '../constants/theme';
 
-export default function SignupScreen() {
-  const router = useRouter();
+export default function CollectionScreen() {
+  const BACKEND_URL = 'http://192.168.40.204:8000';
 
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [products, setProducts] = useState<any[]>([]);
 
-  const handleSignup = async () => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+  const fetchProducts = async () => {
+    try {
+      const userId = await AsyncStorage.getItem('userId');
 
-    if (error) {
-      Alert.alert('Signup Failed', error.message);
-    } else {
-      Alert.alert('Success', 'Account created! Please log in.');
-      router.replace('/');
+      const response = await fetch(
+        `${BACKEND_URL}/products?user_id=${userId}`
+      );
+
+      const data = await response.json();
+
+      setProducts(data);
+    } catch (err) {
+      console.log(err);
     }
   };
 
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const renderItem = ({ item }: any) => (
+    <View style={styles.card}>
+      <Image source={{ uri: item.image_url }} style={styles.image} />
+      <Text style={styles.text}>{item.brand}</Text>
+      <Text style={styles.sub}>{item.shade_name}</Text>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
-
-      <Text style={styles.title}>Create Account</Text>
-
-      <TextInput
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        style={styles.input}
+      <FlatList
+        data={products}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderItem}
       />
-
-      <TextInput
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        style={styles.input}
-        secureTextEntry
-      />
-
-      <TouchableOpacity style={styles.button} onPress={handleSignup}>
-        <Text style={styles.text}>Sign Up</Text>
-      </TouchableOpacity>
-
     </View>
   );
 }
@@ -56,34 +57,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-    justifyContent: 'center',
-    padding: THEME.spacing.lg,
+    padding: 10,
   },
 
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: COLORS.primary,
-    marginBottom: 20,
-    textAlign: 'center',
+  card: {
+    backgroundColor: COLORS.card,
+    padding: 10,
+    borderRadius: 10,
+    marginBottom: 10,
   },
 
-  input: {
-    backgroundColor: COLORS.soft,
-    padding: 12,
-    borderRadius: THEME.radius.md,
-    marginBottom: 12,
-  },
-
-  button: {
-    backgroundColor: COLORS.accent,
-    padding: 14,
-    borderRadius: THEME.radius.md,
+  image: {
+    width: '100%',
+    height: 150,
+    borderRadius: 10,
+    marginBottom: 5,
   },
 
   text: {
-    color: '#FFFFFF',
-    textAlign: 'center',
+    color: COLORS.accent,
     fontWeight: '600',
+  },
+
+  sub: {
+    color: COLORS.textSecondary,
   },
 });

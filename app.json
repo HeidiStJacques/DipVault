@@ -1,60 +1,43 @@
 {
   "expo": {
     "name": "DipVault",
-    "slug": "DipVault",
+    "slug": "dipvault",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "dipvault",
-    "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+
+    "icon": "./assets/images/icon.ico",
+
+    "userInterfaceStyle": "light",
+
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#f7f4ef"
+    },
+
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.heidi21.DipVault",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+      "bundleIdentifier": "com.dipvault.app"
     },
+
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/icon.ico",
+        "backgroundColor": "#f7f4ef"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.heidi21.DipVault"
+      "package": "com.dipvault.app"
     },
+
     "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/icon.ico"
     },
+
     "plugins": [
-      "expo-router",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
-        }
-      ]
-    ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
-    },
-    "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "34dfb38d-d8ff-41f9-9f06-01ebeaeecc2d"
-      }
-    },
-    "owner": "heidi21"
+      "expo-router"
+    ]
   }
 }

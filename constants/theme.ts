@@ -1,11 +1,44 @@
 export const COLORS = {
-  background: "#FFFFFF",   // main app background
-  primary: "#243E36",      // dark slate (text, headers)
-  accent: "#7CA982",       // teal (main buttons)
-  soft: "#F1F7ED",         // card backgrounds
-  gold: "#D4AF37",         // premium button / favorite
-  textSecondary: "#6B7280" // subtle text
+  // Surfaces
+  background: '#F7F4ED',   // app background
+  card: '#FFFDFC',         // cards, panels
+
+  // Text
+  text: '#1F2933',         // main text
+  textSecondary: '#6B7280',
+
+  // Brand
+  accent: '#B08A3E',       // gold (buttons, key links)
+  accentPressed: '#9A7833',
+  accentSoft: '#F3E6CC',   // soft gold tint for chips/badges
+
+  // Status
+  error: '#790919',
+
+  // Utility
+  border: '#E8E1D4',
+  white: '#FFFFFF',
 };
+
+// constants/typography.ts
+export const TYPOGRAPHY = {
+  headingFont: 'Raleway-Regular', 
+  bodyFont: 'PlaywriteDEGrund-Regular', 
+};
+
+
+export const PRODUCT_TYPES = [
+  "dip",
+  "gel",
+  "polish",
+  "acrylic",
+];
+
+export const OTHER_TYPES = [
+  'tool',
+  'formula',
+  'stickers',
+];
 
 export const THEME = {
   colors: COLORS,

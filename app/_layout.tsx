@@ -1,15 +1,10 @@
-import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { Stack } from "expo-router";
+import { AuthProvider } from "../context/AuthContext";
 
-export default function Layout() {
+export default function RootLayout() {
   return (
-    <>
-      <Stack
-        screenOptions={{
-          headerShown: false, // 👈 removes "index" navbar
-        }}
-      />
-      <StatusBar style="auto" />
-    </>
+    <AuthProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </AuthProvider>
   );
 }
