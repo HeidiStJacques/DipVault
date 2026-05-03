@@ -1,50 +1,104 @@
-# Welcome to your Expo app 👋
+# 💅 DipVault
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+DipVault is a personal nail dip powder inventory and lookbook app designed to help users organize, track, and revisit their nail collections and designs.
 
-## Get started
+This is not a social platform — it is a private, user-focused tool for managing personal collections and recreating favorite looks.
 
-1. Install dependencies
+---
 
-   ```bash
-   npm install
-   ```
+## ✨ Features
 
-2. Start the app
+### 🧴 Inventory Management
+- Track dip powders with detailed attributes:
+  - Brand
+  - Color name
+  - Size
+  - Collection (supports multiple collections)
+  - Color code
+  - Finish (e.g., matte, shimmer, glitter)
+  - Type (thermal, UV, glow-in-the-dark, topper)
+- Mark if a dip has been swatched
+- Tag items as part of:
+  - Advent calendars
+  - Holiday collections (supports multiple holidays)
+- Add notes for each product
+- Upload multiple images per dip
+- Mark favorites
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+### 📸 Lookbook (Personal Use)
+- Save and organize nail designs you've created
+- Each look can include:
+  - Title
+  - Photos
+  - Products used (linked from your inventory)
+- Easily revisit past designs to recreate them
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+---
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### 🔍 Filtering & Organization
+- Filter and sort dips by:
+  - Brand
+  - Type
+  - Finish
+  - Favorites
+  - Collections
+- Quickly find products in large inventories
 
-## Get a fresh project
+---
 
-When you're ready, run:
+### ⚙️ Customization (Planned / In Progress)
+- User settings and preferences
+- Enhanced filtering and sorting options
+- Improved UI/UX for faster navigation
 
-```bash
-npm run reset-project
-```
+---
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 🛠️ Tech Stack
 
-## Learn more
+- **Frontend:** React Native (Expo)
+- **Navigation:** Expo Router
+- **Backend:** (Planned)
+- **Database:** (Planned)
 
-To learn more about developing your project with Expo, look at the following resources:
+---
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## 🚧 Project Status
 
-## Join the community
+DipVault is currently in active development.
 
-Join our community of developers creating universal apps.
+Core functionality (inventory + lookbook foundation) is being built, with additional features and backend integration planned.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+---
+
+## 🎯 Purpose
+
+This app was created to solve a real-world problem:
+Managing large nail dip collections and remembering combinations used in past designs.
+
+Most existing solutions are either too basic or built for sharing — DipVault focuses on **personal organization and usability**.
+
+---
+
+## 🔐 Future Enhancements
+
+- Backend integration for persistent storage
+- Cloud sync across devices
+- Advanced search and filtering
+- Export/import inventory data
+- User authentication
+
+---
+
+## 👩‍💻 Author
+
+**Heidi Laurent**  
+Founder, Transcend Technology  
+Builder of SocialBright (HIPAA-compliant case management platform)
+
+---
+
+## 📌 Notes
+
+This project is part of an ongoing portfolio demonstrating real-world application development, UI design, and scalable architecture planning.
