@@ -44,6 +44,11 @@ class SignupRequest(BaseModel):
     password: str = Field(min_length=6)
 
 
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=6)
+    new_password: str = Field(min_length=6)
+
+
 class MessageResponse(BaseModel):
     message: str
 
@@ -130,6 +135,32 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserOut)
 def read_me(current_user: models.User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/change-password", response_model=MessageResponse)
+def change_password(
+    payload: ChangePasswordRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    current_user.password_hash = pwd_context.hash(payload.new_password)
+    db.commit()
+
+    return MessageResponse(message="Password updated successfully")
+
+
+@router.delete("/delete-account", response_model=MessageResponse)
+def delete_account(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    db.delete(current_user)
+    db.commit()
+
+    return MessageResponse(message="Account deleted")
 
 
 @router.get("/dashboard", response_model=MessageResponse)
