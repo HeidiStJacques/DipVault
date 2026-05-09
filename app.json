@@ -2,10 +2,11 @@
   "expo": {
     "name": "DipVault",
     "slug": "dipvault",
+    "scheme": "dipvault",
     "version": "1.0.0",
     "orientation": "portrait",
 
-    "icon": "./assets/images/icon.ico",
+    "icon": "./assets/images/icon.png",
 
     "userInterfaceStyle": "light",
 
@@ -26,14 +27,14 @@
 
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/icon.ico",
+        "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#f7f4ef"
       },
       "package": "com.dipvault.app"
     },
 
     "web": {
-      "favicon": "./assets/images/icon.ico"
+      "favicon": "./assets/images/icon.png"
     },
 
     "plugins": [

@@ -5,175 +5,179 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  StatusBar,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { COLORS } from "../constants/theme";
+import { useAuth } from '../context/AuthContext';
+import { API_BASE } from '../constants/api';
+import { COLORS, RADIUS, SHADOW } from '../constants/theme';
 
 export default function LoginScreen() {
+  const { setToken } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-const API_BASE = 'http://192.168.40.165:8000';
-
-const handleLogin = async () => {
-  setError('');
-
-  if (!email.trim() || !password.trim()) {
-    setError('Please enter your email and password.');
-    return;
-  }
-
-  try {
-    const res = await fetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!res.ok) {
-      const data = await res.json().catch(() => null);
-      setError(data?.detail || 'Invalid email or password.');
+  const handleLogin = async () => {
+    setError('');
+    if (!email.trim() || !password.trim()) {
+      setError('Please enter your email and password.');
       return;
     }
 
-    const data = await res.json();
-    console.log('token', data.access_token);
-    router.replace('/home');
-  } catch (e) {
-    setError('Unable to reach the server. Please try again.');
-  }
-};
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Login failed');
+
+      setToken(data.access_token);
+      router.replace('/(app)/home');
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.logo}>DipVault</Text>
-          <Text style={styles.subtitle}>
-            Sign in to manage your collection, looks, and formulas.
-          </Text>
+    <SafeAreaView style={styles.safe}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <Text style={styles.wordmark}>DipVault</Text>
+            <Text style={styles.tagline}>Your personal dip collection</Text>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Sign In</Text>
+
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor={COLORS.textSecondary}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor={COLORS.textSecondary}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading
+                ? <ActivityIndicator color={COLORS.white} />
+                : <Text style={styles.buttonText}>Sign In</Text>
+              }
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={() => router.push('/signup')}>
+              <Text style={styles.link}>Don't have an account? <Text style={styles.linkAccent}>Sign up</Text></Text>
+            </TouchableOpacity>
+          </View>
         </View>
-
-        <View style={styles.formCard}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="you@example.com"
-            placeholderTextColor="#9CA3AF"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            value={email}
-            onChangeText={setEmail}
-          />
-
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your password"
-            placeholderTextColor="#9CA3AF"
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
-
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginButtonText}>Sign In</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity onPress={() => router.push('/signup')}>
-            <Text style={styles.signupText}>
-              Don’t have an account? <Text style={styles.signupLink}>Sign up</Text>
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#F7F4ED',
-  },
+  safe: { flex: 1, backgroundColor: COLORS.background },
+  flex: { flex: 1 },
   container: {
     flex: 1,
-    paddingHorizontal: 24,
     justifyContent: 'center',
+    paddingHorizontal: 24,
   },
   header: {
-    marginBottom: 36,
     alignItems: 'center',
+    marginBottom: 36,
   },
-  logo: {
-    fontSize: 34,
-    color: '#B08A3E',
-    marginBottom: 10,
+  wordmark: {
+    fontSize: 42,
+    fontWeight: '800',
+    color: COLORS.accent,
+    letterSpacing: -1,
   },
-  subtitle: {
-    fontSize: 15,
-    color: '#6B7280',
-    textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: 10,
-  },
-  formCard: {
-    backgroundColor: '#FFFDFC',
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  label: {
+  tagline: {
     fontSize: 14,
-    color: '#1F2933',
-    marginBottom: 8,
+    color: COLORS.textSecondary,
+    marginTop: 4,
+  },
+  card: {
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.xl,
+    padding: 28,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOW.medium,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 20,
+  },
+  error: {
+    color: COLORS.error,
+    fontSize: 13,
+    marginBottom: 12,
   },
   input: {
-    height: 52,
+    backgroundColor: COLORS.background,
     borderWidth: 1,
-    borderColor: '#E8E1D4',
-    borderRadius: 14,
-    backgroundColor: '#FFFFFF',
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
     paddingHorizontal: 16,
-    marginBottom: 18,
+    paddingVertical: 13,
     fontSize: 15,
-    color: '#1F2933',
+    color: COLORS.text,
+    marginBottom: 12,
   },
-  errorText: {
-    color: '#790919',
-    marginBottom: 14,
-    fontSize: 14,
-  },
-  loginButton: {
+  button: {
     backgroundColor: COLORS.accent,
-    paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
+    paddingVertical: 15,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 12,
+    marginTop: 4,
+    marginBottom: 18,
   },
-  loginButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+  buttonText: {
+    color: COLORS.white,
     fontWeight: '700',
+    fontSize: 16,
   },
-  signupText: {
+  link: {
     textAlign: 'center',
-    color: '#6B7280',
+    color: COLORS.textSecondary,
     fontSize: 14,
   },
-  signupLink: {
-    color: '#B08A3E',
-    fontWeight: '700',
+  linkAccent: {
+    color: COLORS.accent,
+    fontWeight: '600',
   },
 });

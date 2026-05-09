@@ -1,58 +1,41 @@
 export const COLORS = {
-  // Surfaces
-  background: '#F7F4ED',   // app background
-  card: '#FFFDFC',         // cards, panels
-
-  // Text
-  text: '#1F2933',         // main text
-  textSecondary: '#6B7280',
-
-  // Brand
-  accent: '#B08A3E',       // gold (buttons, key links)
-  accentPressed: '#9A7833',
-  accentSoft: '#F3E6CC',   // soft gold tint for chips/badges
-
-  // Status
-  error: '#790919',
-
-  // Utility
-  border: '#E8E1D4',
-  white: '#FFFFFF',
+  background: '#f7f4ef',
+  card: '#ffffff',
+  border: '#e8e0d0',
+  accent: '#B08A3E',
+  accentSoft: '#f5eddb',
+  text: '#2c2418',
+  textSecondary: '#8a7a62',
+  white: '#ffffff',
+  error: '#c0392b',
+  success: '#27ae60',
 };
 
-// constants/typography.ts
-export const TYPOGRAPHY = {
-  headingFont: 'Raleway-Regular', 
-  bodyFont: 'PlaywriteDEGrund-Regular', 
+export const FONTS = {
+  heading: { fontWeight: '700' as const },
+  body: { fontWeight: '400' as const },
 };
 
+export const RADIUS = {
+  sm: 10,
+  md: 16,
+  lg: 20,
+  xl: 28,
+};
 
-export const PRODUCT_TYPES = [
-  "dip",
-  "gel",
-  "polish",
-  "acrylic",
-];
-
-export const OTHER_TYPES = [
-  'tool',
-  'formula',
-  'stickers',
-];
-
-export const THEME = {
-  colors: COLORS,
-
-  spacing: {
-    xs: 4,
-    sm: 8,
-    md: 16,
-    lg: 24,
+export const SHADOW = {
+  small: {
+    shadowColor: '#B08A3E',
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
   },
-
-  radius: {
-    sm: 8,
-    md: 12,
-    lg: 16,
+  medium: {
+    shadowColor: '#B08A3E',
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
 };
