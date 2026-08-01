@@ -3,7 +3,7 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
@@ -84,20 +84,23 @@ export default function LoginScreen() {
               secureTextEntry
             />
 
-            <TouchableOpacity
-              style={styles.button}
+            <Pressable
               onPress={handleLogin}
               disabled={loading}
+              style={({ pressed }) => [
+                styles.button,
+                pressed && styles.buttonPressed,
+              ]}
             >
               {loading
                 ? <ActivityIndicator color={COLORS.white} />
                 : <Text style={styles.buttonText}>Sign In</Text>
               }
-            </TouchableOpacity>
+            </Pressable>
 
-            <TouchableOpacity onPress={() => router.push('/signup')}>
+            <Pressable onPress={() => router.push('/signup')}>
               <Text style={styles.link}>Don't have an account? <Text style={styles.linkAccent}>Sign up</Text></Text>
-            </TouchableOpacity>
+            </Pressable>
           </View>
         </View>
       </KeyboardAvoidingView>
@@ -165,6 +168,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 4,
     marginBottom: 18,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  buttonPressed: {
+    borderColor: COLORS.accentHover,
   },
   buttonText: {
     color: COLORS.white,

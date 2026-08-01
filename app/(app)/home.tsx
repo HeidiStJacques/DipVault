@@ -2,7 +2,7 @@ import React from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   ScrollView,
 } from 'react-native';
@@ -16,13 +16,12 @@ type Tile = {
   label: string;
   icon: keyof typeof Ionicons.glyphMap;
   route: string;
-  accent?: boolean;
 };
 
 const TILES: Tile[][] = [
   [
     { label: 'My Collection', icon: 'archive-outline', route: '/(app)/collection/' },
-    { label: 'Add Product', icon: 'add-circle-outline', route: '/(app)/product/add', accent: true },
+    { label: 'Add Product', icon: 'add-circle-outline', route: '/(app)/product/add' },
   ],
   [
     { label: 'Look Book', icon: 'images-outline', route: '/(app)/lookbook/' },
@@ -48,32 +47,28 @@ export default function HomeScreen() {
             <Text style={styles.wordmark}>DipVault</Text>
             <Text style={styles.subtitle}>What are you working on?</Text>
           </View>
-          <TouchableOpacity style={styles.signOutBtn} onPress={signOut}>
+          <Pressable style={styles.signOutBtn} onPress={signOut}>
             <Ionicons name="log-out-outline" size={22} color={COLORS.textSecondary} />
-          </TouchableOpacity>
+          </Pressable>
         </View>
 
         <View style={styles.grid}>
           {TILES.map((row, ri) => (
             <View key={ri} style={styles.row}>
               {row.map((tile) => (
-                <TouchableOpacity
+                <Pressable
                   key={tile.label}
-                  style={[styles.tile, tile.accent && styles.tileAccent]}
                   onPress={() => router.push(tile.route as any)}
-                  activeOpacity={0.75}
+                  style={({ pressed }) => [
+                    styles.tile,
+                    pressed && styles.tilePressed,
+                  ]}
                 >
-                  <View style={[styles.iconWrap, tile.accent && styles.iconWrapAccent]}>
-                    <Ionicons
-                      name={tile.icon}
-                      size={22}
-                      color={tile.accent ? COLORS.white : COLORS.accent}
-                    />
+                  <View style={styles.iconWrap}>
+                    <Ionicons name={tile.icon} size={22} color={COLORS.accent} />
                   </View>
-                  <Text style={[styles.tileLabel, tile.accent && styles.tileLabelAccent]}>
-                    {tile.label}
-                  </Text>
-                </TouchableOpacity>
+                  <Text style={styles.tileLabel}>{tile.label}</Text>
+                </Pressable>
               ))}
             </View>
           ))}
@@ -114,17 +109,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.card,
     borderRadius: RADIUS.lg,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderWidth: 1.5,
+    borderColor: '#4A4A4A',
     paddingVertical: 24,
     paddingHorizontal: 16,
     alignItems: 'flex-start',
     gap: 14,
     ...SHADOW.small,
   },
-  tileAccent: {
-    backgroundColor: COLORS.accent,
-    borderColor: COLORS.accent,
+  tilePressed: {
+    borderWidth: 3,
   },
   iconWrap: {
     width: 46,
@@ -134,11 +128,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconWrapAccent: { backgroundColor: 'rgba(255,255,255,0.2)' },
   tileLabel: {
     fontSize: 14,
     fontWeight: '700',
     color: COLORS.text,
   },
-  tileLabelAccent: { color: COLORS.white },
 });

@@ -1,9 +1,13 @@
+import os
+import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 from uuid import UUID
 
+import boto3
 import jwt
-from fastapi import APIRouter, HTTPException, Depends, status
+from botocore.exceptions import BotoCoreError, ClientError
+from fastapi import APIRouter, HTTPException, Depends, status, UploadFile, File
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from sqlalchemy.orm import Session
@@ -17,6 +21,19 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
+
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/heic"}
+MAX_IMAGE_SIZE_MB = 10
+MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024
+
+
+def get_s3():
+    return boto3.client(
+        "s3",
+        endpoint_url=os.getenv("R2_ENDPOINT"),
+        aws_access_key_id=os.getenv("R2_ACCESS_KEY"),
+        aws_secret_access_key=os.getenv("R2_SECRET_KEY"),
+    )
 
 
 def verify_password(plain: str, hashed: str) -> bool:
@@ -49,6 +66,10 @@ class ChangePasswordRequest(BaseModel):
     new_password: str = Field(min_length=6)
 
 
+class UpdateProfileRequest(BaseModel):
+    display_name: Optional[str] = Field(None, max_length=100)
+
+
 class MessageResponse(BaseModel):
     message: str
 
@@ -61,6 +82,8 @@ class LoginResponse(BaseModel):
 class UserOut(BaseModel):
     id: UUID
     email: EmailStr
+    display_name: Optional[str] = None
+    profile_image_url: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -134,6 +157,97 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=UserOut)
 def read_me(current_user: models.User = Depends(get_current_user)):
+    return current_user
+
+
+@router.patch("/me", response_model=UserOut)
+def update_profile(
+    payload: UpdateProfileRequest,
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    for field, value in payload.model_dump(exclude_unset=True).items():
+        setattr(current_user, field, value)
+
+    db.commit()
+    db.refresh(current_user)
+
+    return current_user
+
+
+@router.post("/me/photo", response_model=UserOut)
+async def upload_profile_photo(
+    file: UploadFile = File(...),
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file type. Allowed: JPEG, PNG, WebP, HEIC"
+        )
+
+    contents = await file.read()
+    if len(contents) > MAX_IMAGE_SIZE_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Maximum size is {MAX_IMAGE_SIZE_MB}MB"
+        )
+
+    ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else "jpg"
+    key = f"profile/{current_user.id}/{uuid.uuid4()}.{ext}"
+
+    bucket = os.getenv("BUCKET_NAME", "dipvault-images")
+    public_base = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
+
+    try:
+        s3 = get_s3()
+        s3.put_object(
+            Bucket=bucket,
+            Key=key,
+            Body=contents,
+            ContentType=file.content_type,
+        )
+    except (BotoCoreError, ClientError):
+        raise HTTPException(status_code=500, detail="Failed to upload image")
+
+    # Delete old profile photo from R2 if there was one
+    if current_user.profile_image_url:
+        try:
+            old_key = current_user.profile_image_url.replace(f"{public_base}/", "")
+            s3.delete_object(Bucket=bucket, Key=old_key)
+        except Exception:
+            pass  # Non-fatal — old file cleanup best effort
+
+    current_user.profile_image_url = f"{public_base}/{key}"
+    db.commit()
+    db.refresh(current_user)
+
+    return current_user
+
+
+@router.delete("/me/photo", response_model=UserOut)
+def delete_profile_photo(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not current_user.profile_image_url:
+        raise HTTPException(status_code=404, detail="No profile photo to delete")
+
+    public_base = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
+    bucket = os.getenv("BUCKET_NAME", "dipvault-images")
+
+    try:
+        key = current_user.profile_image_url.replace(f"{public_base}/", "")
+        s3 = get_s3()
+        s3.delete_object(Bucket=bucket, Key=key)
+    except Exception:
+        pass  # Non-fatal
+
+    current_user.profile_image_url = None
+    db.commit()
+    db.refresh(current_user)
+
     return current_user
 
 

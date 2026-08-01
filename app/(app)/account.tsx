@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE } from '../../constants/api';
 import { COLORS, RADIUS, SHADOW } from '../../constants/theme';
+import ImagePickerButton from '../../components/ImagePickerButton';
 
 const APP_VERSION = '1.0.0';
 
@@ -22,7 +23,14 @@ export default function AccountScreen() {
   const { token, signOut } = useAuth();
 
   const [email, setEmail] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [profileImageUrl, setProfileImageUrl] = useState<string | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
+
+  const [nameChanged, setNameChanged] = useState(false);
+  const [nameSaving, setNameSaving] = useState(false);
+  const [nameError, setNameError] = useState('');
+  const [nameSuccess, setNameSuccess] = useState('');
 
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
@@ -37,10 +45,39 @@ export default function AccountScreen() {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
-      .then((data) => setEmail(data.email ?? ''))
+      .then((data) => {
+        setEmail(data.email ?? '');
+        setDisplayName(data.display_name ?? '');
+        setProfileImageUrl(data.profile_image_url ?? null);
+      })
       .catch(() => {})
       .finally(() => setLoadingUser(false));
   }, [token]);
+
+  const handleSaveDisplayName = async () => {
+    setNameError('');
+    setNameSuccess('');
+    try {
+      setNameSaving(true);
+      const res = await fetch(`${API_BASE}/auth/me`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ display_name: displayName }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Failed to update display name');
+      setDisplayName(data.display_name ?? '');
+      setNameChanged(false);
+      setNameSuccess('Display name updated.');
+    } catch (err: any) {
+      setNameError(err.message || 'Something went wrong.');
+    } finally {
+      setNameSaving(false);
+    }
+  };
 
   const handleChangePassword = async () => {
     setPwError('');
@@ -125,13 +162,48 @@ export default function AccountScreen() {
 
         {/* Profile card */}
         <View style={[styles.card, styles.profileCard]}>
-          <View style={styles.avatarWrap}>
-            <Ionicons name="person" size={32} color={COLORS.accent} />
-          </View>
           {loadingUser ? (
-            <ActivityIndicator color={COLORS.accent} style={{ marginTop: 12 }} />
+            <ActivityIndicator color={COLORS.accent} style={{ marginVertical: 20 }} />
           ) : (
-            <Text style={styles.emailText}>{email}</Text>
+            <>
+              <ImagePickerButton
+                uploadUrl="/auth/me/photo"
+                imageUrl={profileImageUrl}
+                onUploadComplete={(url: string) => setProfileImageUrl(url)}
+                onDeleteComplete={() => setProfileImageUrl(null)}
+              />
+
+              <View style={styles.nameBlock}>
+                <Text style={styles.fieldLabel}>Display Name</Text>
+                <TextInput
+                  style={styles.nameInput}
+                  placeholder="Add a display name"
+                  placeholderTextColor={COLORS.textSecondary}
+                  value={displayName}
+                  onChangeText={(v) => {
+                    setDisplayName(v);
+                    setNameChanged(true);
+                    setNameSuccess('');
+                  }}
+                />
+                {nameError ? <Text style={styles.error}>{nameError}</Text> : null}
+                {nameSuccess ? <Text style={styles.success}>{nameSuccess}</Text> : null}
+                {nameChanged && (
+                  <TouchableOpacity
+                    style={styles.saveNameButton}
+                    onPress={handleSaveDisplayName}
+                    disabled={nameSaving}
+                  >
+                    {nameSaving
+                      ? <ActivityIndicator color={COLORS.white} />
+                      : <Text style={styles.saveNameButtonText}>Save</Text>
+                    }
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <Text style={styles.emailText}>{email}</Text>
+            </>
           )}
         </View>
 
@@ -245,16 +317,29 @@ const styles = StyleSheet.create({
     ...SHADOW.small,
   },
   profileCard: { alignItems: 'center' },
-  avatarWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: COLORS.accentSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
+
+  nameBlock: { width: '100%', marginTop: 16, gap: 6 },
+  fieldLabel: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary },
+  nameInput: {
+    backgroundColor: COLORS.background,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: RADIUS.md,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: COLORS.text,
   },
-  emailText: { fontSize: 15, color: COLORS.textSecondary, fontWeight: '500' },
+  saveNameButton: {
+    backgroundColor: COLORS.accent,
+    borderRadius: RADIUS.md,
+    paddingVertical: 11,
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  saveNameButtonText: { color: COLORS.white, fontWeight: '700', fontSize: 14 },
+
+  emailText: { fontSize: 14, color: COLORS.textSecondary, fontWeight: '500', marginTop: 14 },
 
   row: {
     flexDirection: 'row',
