@@ -5,26 +5,23 @@
     "scheme": "dipvault",
     "version": "1.0.0",
     "orientation": "portrait",
-
     "icon": "./assets/images/icon.png",
-
     "userInterfaceStyle": "light",
-
     "splash": {
       "image": "./assets/images/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#f7f4ef"
     },
-
     "assetBundlePatterns": [
       "**/*"
     ],
-
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.dipvault.app"
+      "bundleIdentifier": "com.dipvault.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
-
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon.png",
@@ -32,13 +29,17 @@
       },
       "package": "com.dipvault.app"
     },
-
     "web": {
       "favicon": "./assets/images/icon.png"
     },
-
     "plugins": [
       "expo-router"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1e76aa10-8e9f-466f-9d18-2d4bde63632c"
+      }
+    }
   }
 }
