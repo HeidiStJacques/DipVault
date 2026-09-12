@@ -150,7 +150,7 @@ def export_all(
         "user": current_user.email,
         "vaults": [to_dict(v, ["id", "name", "description", "created_at"]) for v in vaults],
         "products": [to_dict(p, [
-            "id", "vault_id", "name", "brand", "shade_name", "type", "finish",
+            "id", "vault_id", "name", "brand", "type", "finish",
             "color_family", "collection_name", "sku", "description", "notes",
             "purchase_date", "purchase_price", "quantity", "low_stock_threshold",
             "status", "is_favorite", "swatched", "is_archived", "image_url", "created_at",
@@ -186,14 +186,14 @@ def export_products_csv(
 
     output = io.StringIO()
     writer = csv.DictWriter(output, fieldnames=[
-        "name", "brand", "shade_name", "type", "finish", "color_family",
+        "name", "brand", "type", "finish", "color_family",
         "collection_name", "sku", "purchase_date", "purchase_price",
         "quantity", "status", "is_favorite", "swatched", "notes",
     ])
     writer.writeheader()
     for p in products:
         writer.writerow({
-            "name": p.name, "brand": p.brand or "", "shade_name": p.shade_name or "",
+            "name": p.name, "brand": p.brand or "",
             "type": p.type or "", "finish": p.finish or "", "color_family": p.color_family or "",
             "collection_name": p.collection_name or "", "sku": p.sku or "",
             "purchase_date": p.purchase_date.isoformat() if p.purchase_date else "",
@@ -234,7 +234,6 @@ async def import_products_csv(
                 user_id=current_user.id,
                 name=row.get("name", "").strip(),
                 brand=row.get("brand", "").strip() or None,
-                shade_name=row.get("shade_name", "").strip() or None,
                 type=row.get("type", "").strip() or None,
                 finish=row.get("finish", "").strip() or None,
                 color_family=row.get("color_family", "").strip() or None,

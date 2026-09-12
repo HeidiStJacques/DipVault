@@ -198,11 +198,6 @@ class Product(Base):
         nullable=True,
     )
 
-    shade_name = Column(
-        String(100),
-        nullable=True,
-    )
-
     size = Column(
         String(50),
         nullable=True,
