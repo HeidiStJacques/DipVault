@@ -1,142 +1,391 @@
 import React, { useCallback, useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert,
+  View,
+  Text,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../../context/AuthContext';
+
 import { API_BASE } from '../../../constants/api';
 import { COLORS, RADIUS, SHADOW } from '../../../constants/theme';
+import { authFetch } from '../../../utils/authFetch';
 
-export default function ToolDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { token } = useAuth();
-  const [name, setName] = useState('');
-  const [type, setType] = useState('');
-  const [brand, setBrand] = useState('');
-  const [purchaseDate, setPurchaseDate] = useState('');
-  const [notes, setNotes] = useState('');
+type Tool = {
+  id: string;
+  name: string;
+  type?: string;
+  brand?: string;
+  purchase_date?: string;
+  notes?: string;
+};
+
+const TOOL_ICONS: Record<
+  string,
+  keyof typeof Ionicons.glyphMap
+> = {
+  brush: 'brush-outline',
+  lamp: 'bulb-outline',
+  file: 'document-outline',
+  buffer: 'layers-outline',
+  drill: 'settings-outline',
+  default: 'build-outline',
+};
+
+function toolIcon(
+  type?: string
+): keyof typeof Ionicons.glyphMap {
+  if (!type) {
+    return TOOL_ICONS.default;
+  }
+
+  const key = type.toLowerCase();
+
+  return TOOL_ICONS[key] ?? TOOL_ICONS.default;
+}
+
+export default function ToolsScreen() {
+  const [tools, setTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+
+  const fetchTools = useCallback(async () => {
+    try {
+      const res = await authFetch(
+        `${API_BASE}/tools/`
+      );
+
+      if (res.status === 401) {
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error('Failed to load tools');
+      }
+
+      const data = await res.json();
+
+      setTools(data);
+      setError('');
+    } catch (err: any) {
+      setError(
+        err.message || 'Something went wrong.'
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      fetch(`${API_BASE}/tools/${id}`, { headers: { Authorization: `Bearer ${token}` } })
-        .then((r) => r.json())
-        .then((t) => {
-          setName(t.name ?? '');
-          setType(t.type ?? '');
-          setBrand(t.brand ?? '');
-          setPurchaseDate(t.purchase_date ?? '');
-          setNotes(t.notes ?? '');
-        })
-        .catch(() => setError('Failed to load tool.'))
-        .finally(() => setLoading(false));
-    }, [id, token])
+      setLoading(true);
+      fetchTools();
+    }, [fetchTools])
   );
 
-  const handleSave = async () => {
-    setError('');
-    if (!name.trim()) { setError('Tool name is required.'); return; }
-    try {
-      setSaving(true);
-      const res = await fetch(`${API_BASE}/tools/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          name: name.trim(),
-          type: type.trim() || null,
-          brand: brand.trim() || null,
-          purchase_date: purchaseDate.trim() || null,
-          notes: notes.trim() || null,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Failed to save.');
-      router.replace('/(app)/tools/');
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong.');
-    } finally {
-      setSaving(false);
-    }
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchTools();
   };
-
-  const handleDelete = () => {
-    Alert.alert('Delete Tool', `Delete "${name}"?`, [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive',
-        onPress: async () => {
-          try {
-            await fetch(`${API_BASE}/tools/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-            router.replace('/(app)/tools/');
-          } catch { Alert.alert('Error', 'Could not delete tool.'); }
-        },
-      },
-    ]);
-  };
-
-  if (loading) return <SafeAreaView style={styles.safe}><View style={styles.centered}><ActivityIndicator color={COLORS.accent} /></View></SafeAreaView>;
 
   return (
     <SafeAreaView style={styles.safe}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <Ionicons name="arrow-back" size={22} color={COLORS.text} />
-          </TouchableOpacity>
-          <Text style={styles.title} numberOfLines={1}>{name || 'Tool'}</Text>
-          <TouchableOpacity onPress={handleSave} disabled={saving} style={styles.saveBtn}>
-            {saving ? <ActivityIndicator size="small" color={COLORS.accent} /> : <Text style={styles.saveBtnText}>Save</Text>}
-          </TouchableOpacity>
-        </View>
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <View style={styles.card}>
-            {error ? <Text style={styles.error}>{error}</Text> : null}
-            <Text style={styles.label}>Tool Name *</Text>
-            <TextInput style={styles.input} placeholder="e.g. Gel Brush #8" placeholderTextColor={COLORS.textSecondary} value={name} onChangeText={setName} />
-            <Text style={styles.label}>Type</Text>
-            <TextInput style={styles.input} placeholder="brush, lamp, file, buffer, drill…" placeholderTextColor={COLORS.textSecondary} value={type} onChangeText={setType} />
-            <Text style={styles.label}>Brand</Text>
-            <TextInput style={styles.input} placeholder="e.g. Makartt" placeholderTextColor={COLORS.textSecondary} value={brand} onChangeText={setBrand} />
-            <Text style={styles.label}>Purchase Date</Text>
-            <TextInput style={styles.input} placeholder="YYYY-MM-DD" placeholderTextColor={COLORS.textSecondary} value={purchaseDate} onChangeText={setPurchaseDate} />
-            <Text style={styles.label}>Notes</Text>
-            <TextInput style={[styles.input, styles.textArea]} placeholder="Condition, usage tips…" placeholderTextColor={COLORS.textSecondary} value={notes} onChangeText={setNotes} multiline />
-          </View>
+      <View style={styles.header}>
+        <TouchableOpacity
+          onPress={() =>
+            router.push('/(app)/home')
+          }
+          style={styles.homeBtn}
+        >
+          <Ionicons
+            name="home-outline"
+            size={20}
+            color={COLORS.accent}
+          />
+        </TouchableOpacity>
 
-          <View style={styles.card}>
-            <TouchableOpacity style={styles.deleteRow} onPress={handleDelete} activeOpacity={0.7}>
-              <View style={styles.deleteIcon}><Ionicons name="trash-outline" size={18} color={COLORS.error} /></View>
-              <Text style={styles.deleteLabel}>Delete Tool</Text>
-              <Ionicons name="chevron-forward" size={16} color={COLORS.border} />
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </KeyboardAvoidingView>
+        <Text style={styles.title}>
+          Tools
+        </Text>
+
+        <TouchableOpacity
+          onPress={() =>
+            router.push('/(app)/tools/add')
+          }
+          style={styles.addBtn}
+        >
+          <Ionicons
+            name="add"
+            size={24}
+            color={COLORS.accent}
+          />
+        </TouchableOpacity>
+      </View>
+
+      <FlatList
+        data={tools}
+        keyExtractor={(tool) => tool.id}
+        contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={COLORS.accent}
+          />
+        }
+        ListHeaderComponent={
+          loading ? (
+            <View style={styles.loadingWrap}>
+              <ActivityIndicator
+                color={COLORS.accent}
+              />
+            </View>
+          ) : error ? (
+            <View style={styles.loadingWrap}>
+              <Text style={styles.errorText}>
+                {error}
+              </Text>
+
+              <TouchableOpacity
+                onPress={fetchTools}
+                style={styles.retryBtn}
+              >
+                <Text
+                  style={styles.retryText}
+                >
+                  Try again
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <Text style={styles.myToolsHeader}>
+              My Tools
+            </Text>
+          )
+        }
+        ListEmptyComponent={
+          !loading && !error ? (
+            <View style={styles.empty}>
+              <Ionicons
+                name="build-outline"
+                size={48}
+                color={COLORS.border}
+              />
+
+              <Text style={styles.emptyTitle}>
+                No tools yet
+              </Text>
+
+              <Text
+                style={styles.emptySubtitle}
+              >
+                Track your brushes, lamps, files
+                and more.
+              </Text>
+
+              <TouchableOpacity
+                onPress={() =>
+                  router.push(
+                    '/(app)/tools/add'
+                  )
+                }
+                style={styles.emptyBtn}
+              >
+                <Text
+                  style={styles.emptyBtnText}
+                >
+                  Add a Tool
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null
+        }
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={styles.toolCard}
+            onPress={() =>
+              router.push(
+                `/(app)/tools/${item.id}` as any
+              )
+            }
+            activeOpacity={0.75}
+          >
+            <View style={styles.toolIcon}>
+              <Ionicons
+                name={toolIcon(item.type)}
+                size={20}
+                color={COLORS.accent}
+              />
+            </View>
+
+            <View style={styles.toolBody}>
+              <Text style={styles.toolName}>
+                {item.name}
+              </Text>
+
+              <Text style={styles.toolMeta}>
+                {[item.type, item.brand]
+                  .filter(Boolean)
+                  .join(' · ') || 'No details'}
+              </Text>
+            </View>
+
+            <Ionicons
+              name="chevron-forward"
+              size={18}
+              color={COLORS.border}
+            />
+          </TouchableOpacity>
+        )}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.background },
-  flex: { flex: 1 },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12 },
-  backBtn: { padding: 4 },
-  title: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', color: COLORS.text },
-  saveBtn: { minWidth: 40, alignItems: 'flex-end' },
-  saveBtnText: { fontSize: 16, fontWeight: '700', color: COLORS.accent },
-  scroll: { paddingHorizontal: 20, paddingBottom: 48, gap: 14 },
-  card: { backgroundColor: COLORS.card, borderRadius: RADIUS.xl, borderWidth: 1, borderColor: COLORS.border, padding: 20, ...SHADOW.small },
-  error: { color: COLORS.error, fontSize: 13, marginBottom: 12 },
-  label: { fontSize: 13, fontWeight: '600', color: COLORS.textSecondary, marginBottom: 6 },
-  input: { backgroundColor: COLORS.background, borderWidth: 1, borderColor: COLORS.border, borderRadius: RADIUS.md, paddingHorizontal: 14, paddingVertical: 12, fontSize: 15, color: COLORS.text, marginBottom: 16 },
-  textArea: { height: 90, textAlignVertical: 'top' },
-  deleteRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  deleteIcon: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#fdecea', alignItems: 'center', justifyContent: 'center' },
-  deleteLabel: { flex: 1, fontSize: 15, fontWeight: '600', color: COLORS.error },
+  safe: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+
+  homeBtn: {
+    padding: 4,
+  },
+
+  title: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+
+  addBtn: {
+    padding: 4,
+  },
+
+  list: {
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 48,
+    gap: 12,
+  },
+
+  myToolsHeader: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+
+  loadingWrap: {
+    alignItems: 'center',
+    paddingVertical: 24,
+  },
+
+  errorText: {
+    color: COLORS.error,
+    marginBottom: 12,
+  },
+
+  retryBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: COLORS.accentSoft,
+    borderRadius: RADIUS.md,
+  },
+
+  retryText: {
+    color: COLORS.accent,
+    fontWeight: '600',
+  },
+
+  toolCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 14,
+    gap: 12,
+    ...SHADOW.small,
+  },
+
+  toolIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: COLORS.accentSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  toolBody: {
+    flex: 1,
+  },
+
+  toolName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.text,
+  },
+
+  toolMeta: {
+    fontSize: 13,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+
+  empty: {
+    alignItems: 'center',
+    paddingTop: 20,
+    paddingHorizontal: 40,
+    gap: 10,
+  },
+
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+
+  emptySubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+
+  emptyBtn: {
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: RADIUS.md,
+    marginTop: 4,
+  },
+
+  emptyBtnText: {
+    color: COLORS.white,
+    fontWeight: '700',
+  },
 });

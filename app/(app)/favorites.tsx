@@ -14,25 +14,24 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../context/AuthContext';
+
 import { API_BASE } from '../../constants/api';
 import { COLORS, RADIUS } from '../../constants/theme';
+import { authFetch } from '../../utils/authFetch';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const PHOTO_HEIGHT = SCREEN_WIDTH; // square like Instagram
+const PHOTO_HEIGHT = SCREEN_WIDTH;
 
 type Product = {
   id: string;
   name: string;
   brand?: string;
-  shade_name?: string;
   image_url?: string;
   is_favorite: boolean;
   vault_id?: string;
 };
 
 export default function FavoritesScreen() {
-  const { token } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -40,20 +39,31 @@ export default function FavoritesScreen() {
 
   const fetchFavorites = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/products/?is_favorite=true`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error('Failed to load favorites');
+      const res = await authFetch(
+        `${API_BASE}/products/?is_favorite=true`
+      );
+
+      if (res.status === 401) {
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error('Failed to load favorites');
+      }
+
       const data: Product[] = await res.json();
+
       setProducts(data);
       setError('');
     } catch (err: any) {
-      setError(err.message || 'Something went wrong.');
+      setError(
+        err.message || 'Something went wrong.'
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [token]);
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
@@ -68,15 +78,30 @@ export default function FavoritesScreen() {
   };
 
   const handleUnfavorite = async (id: string) => {
-    // Optimistic update
-    setProducts((prev) => prev.filter((p) => p.id !== id));
+    // Optimistically remove it from Favorites.
+    setProducts((prev) =>
+      prev.filter((product) => product.id !== id)
+    );
+
     try {
-      await fetch(`${API_BASE}/products/${id}/favorite`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await authFetch(
+        `${API_BASE}/products/${id}/favorite`,
+        {
+          method: 'PATCH',
+        }
+      );
+
+      if (res.status === 401) {
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error(
+          'Failed to update favorite'
+        );
+      }
     } catch {
-      // Refetch on failure
+      // Restore server state if the request failed.
       fetchFavorites();
     }
   };
@@ -84,47 +109,95 @@ export default function FavoritesScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push('/(app)/home')} style={styles.homeBtn}>
-          <Ionicons name="home-outline" size={20} color={COLORS.accent} />
+        <TouchableOpacity
+          onPress={() =>
+            router.push('/(app)/home')
+          }
+          style={styles.homeBtn}
+        >
+          <Ionicons
+            name="home-outline"
+            size={20}
+            color={COLORS.accent}
+          />
         </TouchableOpacity>
-        <Text style={styles.title}>Favorites</Text>
+
+        <Text style={styles.title}>
+          Favorites
+        </Text>
+
         <View style={{ width: 30 }} />
       </View>
 
       {loading ? (
         <View style={styles.centered}>
-          <ActivityIndicator color={COLORS.accent} />
+          <ActivityIndicator
+            color={COLORS.accent}
+          />
         </View>
       ) : error ? (
         <View style={styles.centered}>
-          <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity onPress={fetchFavorites} style={styles.retryBtn}>
-            <Text style={styles.retryText}>Try again</Text>
+          <Text style={styles.errorText}>
+            {error}
+          </Text>
+
+          <TouchableOpacity
+            onPress={fetchFavorites}
+            style={styles.retryBtn}
+          >
+            <Text style={styles.retryText}>
+              Try again
+            </Text>
           </TouchableOpacity>
         </View>
       ) : (
         <FlatList
           data={products}
-          keyExtractor={(p) => p.id}
+          keyExtractor={(product) =>
+            product.id
+          }
           showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.accent} />
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={COLORS.accent}
+            />
           }
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ItemSeparatorComponent={() => (
+            <View style={styles.separator} />
+          )}
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Ionicons name="heart-outline" size={56} color={COLORS.border} />
-              <Text style={styles.emptyTitle}>No favorites yet</Text>
-              <Text style={styles.emptySubtitle}>
-                Double-tap any product photo or tap the heart to save it here.
+              <Ionicons
+                name="heart-outline"
+                size={56}
+                color={COLORS.border}
+              />
+
+              <Text style={styles.emptyTitle}>
+                No favorites yet
+              </Text>
+
+              <Text
+                style={styles.emptySubtitle}
+              >
+                Double-tap any product photo or
+                tap the heart to save it here.
               </Text>
             </View>
           }
           renderItem={({ item }) => (
             <FeedCard
               product={item}
-              onUnfavorite={() => handleUnfavorite(item.id)}
-              onPress={() => router.push(`/(app)/product/${item.id}` as any)}
+              onUnfavorite={() =>
+                handleUnfavorite(item.id)
+              }
+              onPress={() =>
+                router.push(
+                  `/(app)/product/${item.id}` as any
+                )
+              }
             />
           )}
         />
@@ -132,8 +205,6 @@ export default function FavoritesScreen() {
     </SafeAreaView>
   );
 }
-
-// ── Feed Card ─────────────────────────────────────────────────────────────────
 
 function FeedCard({
   product,
@@ -144,86 +215,165 @@ function FeedCard({
   onUnfavorite: () => void;
   onPress: () => void;
 }) {
-  const heartScale = useRef(new Animated.Value(0)).current;
-  const heartOpacity = useRef(new Animated.Value(0)).current;
+  const heartScale = useRef(
+    new Animated.Value(0)
+  ).current;
+
+  const heartOpacity = useRef(
+    new Animated.Value(0)
+  ).current;
+
   const lastTap = useRef<number>(0);
 
   const burstHeart = () => {
     heartScale.setValue(0);
     heartOpacity.setValue(1);
+
     Animated.sequence([
-      Animated.spring(heartScale, { toValue: 1.3, useNativeDriver: true, speed: 20, bounciness: 12 }),
-      Animated.timing(heartOpacity, { toValue: 0, duration: 600, delay: 300, useNativeDriver: true }),
+      Animated.spring(heartScale, {
+        toValue: 1.3,
+        useNativeDriver: true,
+        speed: 20,
+        bounciness: 12,
+      }),
+
+      Animated.timing(heartOpacity, {
+        toValue: 0,
+        duration: 600,
+        delay: 300,
+        useNativeDriver: true,
+      }),
     ]).start();
   };
 
   const handleDoubleTap = () => {
     const now = Date.now();
+
     if (now - lastTap.current < 300) {
-      // Double tap — toggle off if already favorited (in this screen it always is)
       burstHeart();
       onUnfavorite();
     }
+
     lastTap.current = now;
   };
 
   return (
     <View style={cardStyles.container}>
-      {/* Top bar: name + brand */}
-      <TouchableOpacity style={cardStyles.topBar} onPress={onPress} activeOpacity={0.8}>
+      {/* Top bar */}
+      <TouchableOpacity
+        style={cardStyles.topBar}
+        onPress={onPress}
+        activeOpacity={0.8}
+      >
         <View style={cardStyles.avatar}>
-          <Ionicons name="cube-outline" size={16} color={COLORS.accent} />
+          <Ionicons
+            name="cube-outline"
+            size={16}
+            color={COLORS.accent}
+          />
         </View>
+
         <View style={cardStyles.topText}>
-          <Text style={cardStyles.productName} numberOfLines={1}>{product.name}</Text>
+          <Text
+            style={cardStyles.productName}
+            numberOfLines={1}
+          >
+            {product.name}
+          </Text>
+
           {product.brand ? (
-            <Text style={cardStyles.brandName} numberOfLines={1}>{product.brand}</Text>
+            <Text
+              style={cardStyles.brandName}
+              numberOfLines={1}
+            >
+              {product.brand}
+            </Text>
           ) : null}
         </View>
       </TouchableOpacity>
 
       {/* Photo */}
-      <TouchableOpacity activeOpacity={1} onPress={handleDoubleTap} style={cardStyles.photoWrap}>
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={handleDoubleTap}
+        style={cardStyles.photoWrap}
+      >
         {product.image_url ? (
-          <Image source={{ uri: product.image_url }} style={cardStyles.photo} resizeMode="cover" />
+          <Image
+            source={{
+              uri: product.image_url,
+            }}
+            style={cardStyles.photo}
+            resizeMode="cover"
+          />
         ) : (
-          <View style={cardStyles.photoPlaceholder}>
-            <Ionicons name="image-outline" size={48} color={COLORS.border} />
-            <Text style={cardStyles.placeholderText}>No photo</Text>
+          <View
+            style={
+              cardStyles.photoPlaceholder
+            }
+          >
+            <Ionicons
+              name="image-outline"
+              size={48}
+              color={COLORS.border}
+            />
+
+            <Text
+              style={
+                cardStyles.placeholderText
+              }
+            >
+              No photo
+            </Text>
           </View>
         )}
 
-        {/* Double-tap heart burst */}
         <Animated.View
           style={[
             cardStyles.heartBurst,
-            { transform: [{ scale: heartScale }], opacity: heartOpacity },
+            {
+              transform: [
+                { scale: heartScale },
+              ],
+              opacity: heartOpacity,
+            },
           ]}
           pointerEvents="none"
         >
-          <Ionicons name="heart" size={90} color="white" />
+          <Ionicons
+            name="heart"
+            size={90}
+            color="white"
+          />
         </Animated.View>
       </TouchableOpacity>
 
-      {/* Bottom bar: heart + shade */}
+      {/* Bottom bar */}
       <View style={cardStyles.bottomBar}>
-        <TouchableOpacity onPress={onUnfavorite} style={cardStyles.heartBtn} activeOpacity={0.7}>
-          <Ionicons name="heart" size={26} color={COLORS.accent} />
+        <TouchableOpacity
+          onPress={onUnfavorite}
+          style={cardStyles.heartBtn}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name="heart"
+            size={26}
+            color={COLORS.accent}
+          />
         </TouchableOpacity>
-        <TouchableOpacity onPress={onPress} style={cardStyles.moreBtn} activeOpacity={0.7}>
-          <Ionicons name="arrow-forward-circle-outline" size={26} color={COLORS.textSecondary} />
+
+        <TouchableOpacity
+          onPress={onPress}
+          style={cardStyles.moreBtn}
+          activeOpacity={0.7}
+        >
+          <Ionicons
+            name="arrow-forward-circle-outline"
+            size={26}
+            color={COLORS.textSecondary}
+          />
         </TouchableOpacity>
       </View>
-
-      {/* Shade name caption */}
-      {product.shade_name ? (
-        <View style={cardStyles.caption}>
-          <Text style={cardStyles.captionText}>
-            <Text style={cardStyles.captionBold}>{product.name} </Text>
-            {product.shade_name}
-          </Text>
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -232,6 +382,7 @@ const cardStyles = StyleSheet.create({
   container: {
     backgroundColor: COLORS.card,
   },
+
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -239,6 +390,7 @@ const cardStyles = StyleSheet.create({
     paddingVertical: 10,
     gap: 10,
   },
+
   avatar: {
     width: 34,
     height: 34,
@@ -249,9 +401,22 @@ const cardStyles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: COLORS.accent,
   },
-  topText: { flex: 1 },
-  productName: { fontSize: 14, fontWeight: '700', color: COLORS.text },
-  brandName: { fontSize: 12, color: COLORS.textSecondary },
+
+  topText: {
+    flex: 1,
+  },
+
+  productName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+
+  brandName: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+
   photoWrap: {
     width: SCREEN_WIDTH,
     height: PHOTO_HEIGHT,
@@ -259,18 +424,29 @@ const cardStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  photo: { width: SCREEN_WIDTH, height: PHOTO_HEIGHT },
+
+  photo: {
+    width: SCREEN_WIDTH,
+    height: PHOTO_HEIGHT,
+  },
+
   photoPlaceholder: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
   },
-  placeholderText: { fontSize: 14, color: COLORS.textSecondary },
+
+  placeholderText: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+  },
+
   heartBurst: {
     position: 'absolute',
     alignSelf: 'center',
   },
+
   bottomBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -279,15 +455,37 @@ const cardStyles = StyleSheet.create({
     paddingBottom: 4,
     gap: 12,
   },
-  heartBtn: { padding: 2 },
-  moreBtn: { padding: 2 },
-  caption: { paddingHorizontal: 14, paddingBottom: 12 },
-  captionText: { fontSize: 14, color: COLORS.text, lineHeight: 20 },
-  captionBold: { fontWeight: '700' },
+
+  heartBtn: {
+    padding: 2,
+  },
+
+  moreBtn: {
+    padding: 2,
+  },
+
+  caption: {
+    paddingHorizontal: 14,
+    paddingBottom: 12,
+  },
+
+  captionText: {
+    fontSize: 14,
+    color: COLORS.text,
+    lineHeight: 20,
+  },
+
+  captionBold: {
+    fontWeight: '700',
+  },
 });
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.background },
+  safe: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -297,14 +495,64 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  homeBtn: { padding: 4 },
-  title: { flex: 1, textAlign: 'center', fontSize: 18, fontWeight: '700', color: COLORS.text },
-  centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  errorText: { color: COLORS.error, marginBottom: 12 },
-  retryBtn: { paddingHorizontal: 20, paddingVertical: 10, backgroundColor: COLORS.accentSoft, borderRadius: RADIUS.md },
-  retryText: { color: COLORS.accent, fontWeight: '600' },
-  separator: { height: 8, backgroundColor: COLORS.background },
-  empty: { alignItems: 'center', marginTop: 100, paddingHorizontal: 40, gap: 12 },
-  emptyTitle: { fontSize: 18, fontWeight: '700', color: COLORS.text },
-  emptySubtitle: { fontSize: 14, color: COLORS.textSecondary, textAlign: 'center', lineHeight: 20 },
+
+  homeBtn: {
+    padding: 4,
+  },
+
+  title: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  errorText: {
+    color: COLORS.error,
+    marginBottom: 12,
+  },
+
+  retryBtn: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: COLORS.accentSoft,
+    borderRadius: RADIUS.md,
+  },
+
+  retryText: {
+    color: COLORS.accent,
+    fontWeight: '600',
+  },
+
+  separator: {
+    height: 8,
+    backgroundColor: COLORS.background,
+  },
+
+  empty: {
+    alignItems: 'center',
+    marginTop: 100,
+    paddingHorizontal: 40,
+    gap: 12,
+  },
+
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: COLORS.text,
+  },
+
+  emptySubtitle: {
+    fontSize: 14,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
 });
